@@ -8,6 +8,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Plugin store:** a new **Plugins** page (super admins install and buy; administrators can look) with the
+  Sudoo.sh marketplace's catalogue (search, categories, Official and Verified publishers, prices), the installed
+  plugins (versions, updates, licence dates, switch off and on, uninstall after a backup) and the receipts and
+  purchases of this server, each with a CSV export. A free plugin installs with one click: the package is
+  downloaded with a signed request, its SHA-256 and the hub's Ed25519 signature are checked, it is unpacked into a
+  private folder and the backend restarts by itself. Paid plugins are bought with the account's saved card or
+  through a Stripe page (each press carries its own idempotency key, so nothing is charged twice); their licences
+  are followed offline (reminder 7 days before, grace period, backup and switch-off keeping the data, switch-on
+  after a renewal). The panel registers with the hub, sends a signed heartbeat every 6 hours and keeps the signed
+  lease; everything keeps working when the hub cannot be reached. New settings `MARKETPLACE` and `HUB_URL`,
+  permission `plugins.view`, command `sudoo.sh marketplace`, and [Marketplace](docs/MARKETPLACE.md).
+
 - **Daily backups:** once a day (`DAILY_BACKUP_TIME`, default 00:00, in `TIMEZONE`), every instance that was used
   since its last daily backup is backed up. Each instance keeps only its latest daily backup; they go when the
   instance is deleted. Settings: `DAILY_BACKUPS`, `DAILY_BACKUP_TIME`, `TIMEZONE` (Settings, Backups).

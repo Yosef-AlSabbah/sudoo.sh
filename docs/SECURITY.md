@@ -16,7 +16,8 @@
 7. [What is not protected](#7-what-is-not-protected)
 8. [API tokens and webhooks](#8-api-tokens-and-webhooks)
 9. [Roles and the audit log](#9-roles-and-the-audit-log)
-10. [Checklist for the administrator](#10-checklist-for-the-administrator)
+10. [Marketplace plugins: keys, signatures, licences](#10-marketplace-plugins-keys-signatures-licences)
+11. [Checklist for the administrator](#11-checklist-for-the-administrator)
 
 ---
 
@@ -262,6 +263,8 @@ Being clear about limits is part of security.
 | **Each instance's database password** | Stored readable in the instance's `.env` and `odoo.conf` (folder mode 700, root only). The database is reachable only from that instance's Odoo container, on a private Docker network, so the password is of no use to anyone who could not already read the whole server. |
 | **Sign-in lockout after a restart** | Failed attempts are counted in memory; a panel restart resets the counters. The slow hash still limits guessing. |
 | **Odoo's own security** | Odoo inside an instance is the official image, unchanged; its own security is Odoo's. |
+| **A plugin's files, from root** | Installed plugins are in `/opt/odoo/manager/plugins/` (root only, never served, no API returns them), but root on the server can read them. Their code is protected by the panel never exposing it and by the licence forbidding copies, not by encryption ([Marketplace plugins](#10-marketplace-plugins-keys-signatures-licences)). |
+| **What a plugin does once loaded** | A plugin runs inside the panel's process with the panel's rights. The marketplace's review, the permissions it must declare and the hub's signature are the safeguards; install only the plugins you need. |
 
 ---
 
@@ -303,7 +306,8 @@ refuses the call anyway, with 403 naming the missing permission, and the refusal
 | `accounts.manage` | Create, change and delete accounts | yes | yes | | | |
 | `tokens.manage` | Create and revoke API tokens | yes | yes | | | |
 | `audit.view` | Read the audit log | yes | yes | | | |
-| `settings.manage` | Change the panel's settings and restart it | yes | | | | |
+| `plugins.view` | See installed plugins, the marketplace and purchases | yes | yes | | | |
+| `settings.manage` | Change the panel's settings, install and buy plugins, and restart it | yes | | | | |
 
 * Only a **super admin** creates, changes, resets or deletes super admin accounts. The last super admin cannot be
   deleted or given another role, so there is always at least one.
@@ -321,7 +325,39 @@ refuses the call anyway, with 403 naming the missing permission, and the refusal
 
 ---
 
-## 10. Checklist for the administrator
+## 10. Marketplace plugins: keys, signatures, licences
+
+Plugins from the Sudoo.sh marketplace are checked by the panel itself before they run
+([Marketplace](MARKETPLACE.md)).
+
+| Key or value | Kind | Where it is kept | What it does |
+| :--- | :--- | :--- | :--- |
+| Installation key | Ed25519 private key, made on the server | The panel's database, encrypted with the vault key (label `hub-identity:<id>`) | Signs every request to the hub (method, path, installation id, time, single-use nonce, body hash), so the hub knows which panel asks and nobody can replay or alter a request |
+| Hub keys | Ed25519 public keys | Pinned in the panel's database the first time the panel registers with a hub | Verify leases and plugin signatures; a key that was not pinned is refused (`sudoo.sh marketplace repin` pins again, on purpose only) |
+| Lease | JWT signed by the hub (EdDSA only; `none` and HMAC algorithms are refused), for this installation, 7 days | The panel's database | Says which plugins may run and the licence dates of the paid ones; only verified claims are used |
+| Package signature | Ed25519 over `sudoo-plugin-v1`, id, version and SHA-256 | Sent with the package | Binds a package to one plugin and one version; checked with a pinned key before anything is unpacked |
+| Plugin file hashes | SHA-256 over every unpacked file | The plugin's record | Checked at every start and every 10 minutes; a changed plugin is not loaded and the super admins are e-mailed |
+
+* Downloads use a signed request; a redirect to a storage link is followed only over https, without the signature.
+* Packages with links, special files, absolute or `..` paths, compiled code, archive bombs or Python dependencies are
+  refused; plugins are unpacked into `/opt/odoo/manager/plugins/` (folders 700, files 600) and the package file is
+  deleted. The web container does not mount that folder.
+* No endpoint returns a plugin's files or package. Purchase links and receipts reach the browser only when they are
+  https.
+* Paid plugins stop when the lease expires (7 days without a heartbeat that passed) or when the licence's grace ends.
+  The panel never counts a time earlier than one it saw before or than the last lease's signed issue time, so
+  turning the clock back does not extend a licence. When the hub reports an integrity violation or a suspension,
+  every plugin is switched off.
+* The heartbeat sends the version, the hash of the panel's Python files and the installed plugins; nothing about
+  instances, accounts or their data. A purchase also sends the name and e-mail address of the super admin who
+  pressed **Buy**, for the receipt. Card details never pass through the panel: cards are entered only on Stripe's
+  pages.
+* Each press of **Buy** carries a single-use idempotency key, so a retried request never charges twice.
+* Root on the server can read plugin files and the vault key; see [What is not protected](#7-what-is-not-protected).
+
+---
+
+## 11. Checklist for the administrator
 
 - [ ] Create the first account with the setup code right after installing, so nobody else can.
 - [ ] Turn on a second factor for your own account; keep `REQUIRE_SECOND_FACTOR` at `admins` or `everyone`.
@@ -334,3 +370,5 @@ refuses the call anyway, with 403 naming the missing permission, and the refusal
 - [ ] Remove deploy keys of repositories that are no longer used, in the panel and on GitHub.
 - [ ] Give each system its own API token, `read` where reading is enough; revoke tokens no longer used.
 - [ ] With `host-ports`, put https in front of the panel and limit who can reach its port.
+- [ ] Install only the plugins you need, preferably from Official or Verified publishers; read what each asks
+      permission to do.

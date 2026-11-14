@@ -31,7 +31,11 @@ os.environ.update(
 from flask import Flask  # noqa: E402
 from flask.testing import FlaskClient  # noqa: E402
 
-from sudoo import accounts, background  # noqa: E402
+from sudoo import accounts, background, plugin_manager  # noqa: E402
+
+RESTARTS: list[float] = []
+# the backend is never really stopped in tests: a plugin change only records that it would restart
+plugin_manager.stop_backend = lambda: RESTARTS.append(1.0)
 
 ORIGIN = {"Origin": "http://localhost"}
 

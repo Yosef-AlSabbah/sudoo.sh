@@ -1,0 +1,11 @@
+{#- A notice for the super admins, for example a plugin's licence ending or a plugin switched off. -#}
+{% extends "layout.html" %}
+{% block content %}
+<p style="margin:0 0 12px 0;">Hello,</p>
+<p style="margin:0 0 16px 0;">{{ text }}</p>
+{% if panel_url %}
+<p style="margin:16px 0 0 0; text-align:center;">
+  <a href="{{ panel_url }}/plugins" style="display:inline-block; background-color:{{ accent | default('#714B67') }}; border-radius:5px; padding:8px 18px; font-size:13px; color:#FFFFFF; text-decoration:none;">Open Plugins</a>
+</p>
+{% endif %}
+{% endblock %}

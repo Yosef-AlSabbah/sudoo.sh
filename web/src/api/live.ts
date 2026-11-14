@@ -54,7 +54,8 @@ function handle(client: QueryClient, topic: string, key: string, data: unknown) 
         client.setQueryData<Job[]>(keys.jobs(scope), (list) => upsert(list, job, (j) => j.id === job.id, true));
       }
       if (job.status === "success" || job.status === "failed") {
-        client.invalidateQueries({ queryKey: keys.instance(job.instance) });
+        if (job.kind.startsWith("plugin")) client.invalidateQueries({ queryKey: keys.plugins });
+        else client.invalidateQueries({ queryKey: keys.instance(job.instance) });
         if (job.kind === "backup" || job.kind === "delete") client.invalidateQueries({ queryKey: ["backups"] });
       }
       break;
@@ -89,13 +90,20 @@ function handle(client: QueryClient, topic: string, key: string, data: unknown) 
       client.invalidateQueries({ queryKey: ["account"] });
       client.invalidateQueries({ queryKey: ["quota"] });
       break;
+    case "plugins":
+      client.invalidateQueries({ queryKey: keys.plugins });
+      break;
+    case "marketplace":
+      client.invalidateQueries({ queryKey: keys.marketplace });
+      client.invalidateQueries({ queryKey: keys.plugins });
+      break;
     case "reset":
       client.invalidateQueries();
       break;
   }
 }
 
-const TOPICS = ["instance", "instance.deleted", "job", "job.output", "metrics", "settings", "reset"];
+const TOPICS = ["instance", "instance.deleted", "job", "job.output", "metrics", "settings", "plugins", "marketplace", "reset"];
 
 export interface Sync {
   state: LiveState;

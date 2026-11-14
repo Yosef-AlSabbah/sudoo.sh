@@ -8,6 +8,7 @@ docker exec sudoo-panel sudoo.sh urls                    current public addresse
 docker exec sudoo-panel sudoo.sh config                  effective settings and installed plugins
 docker exec sudoo-panel sudoo.sh create-token NAME SCOPE  SCOPE is read or write; prints the secrets once
 docker exec sudoo-panel sudoo.sh test-email ADDRESS       send a test e-mail, to check the SMTP settings
+docker exec sudoo-panel sudoo.sh marketplace [status|heartbeat|repin]   the connection to the Sudoo.sh hub
 sudoo.sh serve                                       start the web panel (the container does this)
 """
 
@@ -94,6 +95,31 @@ def test_email(args: argparse.Namespace) -> None:
     print(f"Sent to {args.address} through {server}. Check the inbox (and the spam folder).")
 
 
+def marketplace(args: argparse.Namespace) -> None:
+    """status: the connection to the hub and the installed plugins; heartbeat: send one now; repin: forget the
+    pinned hub keys so the next heartbeat fetches and pins them again (after the hub changed its key)."""
+    from sudoo import plugin_manager
+    from sudoo.hub import HubRefused, HubUnavailable, client
+    from sudoo.hub import marketplace as hub
+
+    if args.action == "repin":
+        client.update_identity(hub_keys={}, hub_url=None, registered_at=None)
+        audit.record("command line", None, "marketplace keys forgotten (repin)")
+        print("The hub's keys are forgotten; the next heartbeat fetches and pins them again.")
+    if args.action in ("heartbeat", "repin"):
+        try:
+            hub.heartbeat()
+        except (HubRefused, HubUnavailable) as error:
+            sys.exit(f"Heartbeat failed: {error}")
+    status = hub.status()
+    for key, value in status.items():
+        if key.endswith("_at") and isinstance(value, int | float):
+            value = datetime.fromtimestamp(value).strftime("%Y-%m-%d %H:%M")
+        print(f"{key:<20} {value}")
+    for plugin_id, rec in sorted(plugin_manager.records().items()):
+        print(f"plugin {plugin_id:<32} {rec['version']:<10} {plugin_manager.allowed(rec)[1]}")
+
+
 def serve(_: argparse.Namespace) -> None:
     """Start gunicorn: one process (jobs, monitor and gateway share its memory), on 127.0.0.1:API_PORT. Visitors
     reach it through the web service (web/, container sudoo-web), which listens on PANEL_PORT."""
@@ -124,6 +150,9 @@ def main(argv: list[str] | None = None) -> None:
     mail = commands.add_parser("test-email", help="send a test e-mail to check the SMTP settings")
     mail.add_argument("address")
     mail.set_defaults(run=test_email)
+    hub = commands.add_parser("marketplace", help="the connection to the Sudoo.sh hub")
+    hub.add_argument("action", nargs="?", default="status", choices=("status", "heartbeat", "repin"))
+    hub.set_defaults(run=marketplace)
     commands.add_parser("serve", help="start the web panel").set_defaults(run=serve)
     args = parser.parse_args(argv)
     try:

@@ -1,9 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Mail, Plug, RefreshCcw, RotateCcw, Send, ServerCog } from "lucide-react";
+import { Mail, Plug, Puzzle, RefreshCcw, RotateCcw, Send, ServerCog } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import { api, errorText } from "@/api/client";
 import { keys, useCall, useSettings } from "@/api/queries";
 import type { Setting } from "@/api/types";
+import { MarketplaceSettings } from "@/components/Marketplace";
 import { Page, PageHead, useMe } from "@/components/Shell";
 import { Button, Callout, Skeleton, Switch, Tag } from "@/components/ui/basics";
 import { Modal, useToast } from "@/components/ui/overlay";
@@ -59,6 +61,7 @@ const TITLES: Record<string, string> = {
   admin_contact_email: "Contact e-mail",
   admin_contact_phone: "Contact phone",
   brand_color: "Accent colour",
+  marketplace: "Use the marketplace",
   mailer: "Mailer",
   second_factors: "Second factors offered",
   update_triggers: "Update triggers",
@@ -249,6 +252,11 @@ export function SettingsPage() {
             actions={<Button size="sm" variant={pending ? "primary" : "default"} icon={<RefreshCcw />} loading={restarting} onClick={restart}>Restart the panel</Button>}>
             {pending && <div style={{ padding: "12px 20px 0" }}><Callout tone="warning">Some changes wait for a restart. Instances, links and the web app keep running while the panel restarts.</Callout></div>}
             {rows(PLUGINS.keys)}
+          </Section>
+          <Section title="Marketplace" text="Plugins from Sudoo.sh: the connection to the hub, and linking this panel to an account on app.sudoo.sh" icon={<Puzzle />}
+            actions={<Link className="btn sm" to="/plugins" viewTransition>Open Plugins</Link>}>
+            {rows(["marketplace"])}
+            <MarketplaceSettings />
           </Section>
           <Section title="Server" text="Folders, ports and how the panel is reached. Change these in /opt/odoo/manager/.env" icon={<ServerCog />}>
             <div className="table-wrap">

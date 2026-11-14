@@ -12,6 +12,7 @@ import {
   Monitor,
   Moon,
   Plus,
+  Puzzle,
   ScrollText,
   Settings2,
   Sun,
@@ -22,12 +23,12 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { api, setCsrfToken } from "@/api/client";
 import { useLiveEvents, type Sync } from "@/api/live";
-import { keys, useInstances, useMetrics, useSession } from "@/api/queries";
+import { keys, useInstances, useMetrics, usePluginNotices, useSession } from "@/api/queries";
 import type { Permission, Session } from "@/api/types";
 import { percent } from "@/lib/format";
 import { applyBrandColor, applyTheme, storedTheme, type ThemeChoice } from "@/lib/theme";
 import { Brand } from "./ui/Brand";
-import { Button, Spinner } from "./ui/basics";
+import { Button, Callout, Spinner } from "./ui/basics";
 import { Menu, useToast } from "./ui/overlay";
 
 const SessionContext = createContext<Session | null>(null);
@@ -115,7 +116,7 @@ function Sidebar({ open }: { open: boolean }) {
   const { data: instances } = useInstances();
   const signOut = useSignOut();
   const operations = can("backups.manage") || can("audit.view") || can("github.manage");
-  const administration = can("settings.manage") || can("accounts.manage") || can("tokens.manage");
+  const administration = can("settings.manage") || can("accounts.manage") || can("tokens.manage") || can("plugins.view");
   return (
     <aside className={`sidebar ${open ? "open" : ""}`}>
       <Brand />
@@ -162,6 +163,11 @@ function Sidebar({ open }: { open: boolean }) {
             {can("settings.manage") && (
               <NavItem to="/settings" icon={<Settings2 />}>
                 Settings
+              </NavItem>
+            )}
+            {can("plugins.view") && (
+              <NavItem to="/plugins" icon={<Puzzle />}>
+                Plugins
               </NavItem>
             )}
             {can("accounts.manage") && (
@@ -238,6 +244,7 @@ const CRUMBS: Record<string, string> = {
   "": "Instances",
   new: "New instance",
   settings: "Settings",
+  plugins: "Plugins",
   accounts: "Accounts",
   tokens: "API tokens",
   backups: "Backups",
@@ -278,6 +285,30 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   );
 }
 
+/** Banners about plugins that need attention: a licence ending, in its grace period or ended, changed files. */
+function PluginNotices() {
+  const can = useCan();
+  const { pathname } = useLocation();
+  const { data: notices } = usePluginNotices(can("plugins.view"));
+  if (!notices?.length) return null;
+  const tone = (level: string) => (level === "danger" ? "danger" : level === "warning" ? "warning" : "info");
+  return (
+    <div className="notices" role="status">
+      {notices.slice(0, 3).map((notice, i) => (
+        <Callout key={`${notice.plugin}-${notice.kind}-${i}`} tone={tone(notice.level)}>
+          {notice.text}
+          {!pathname.startsWith("/plugins") && (
+            <>
+              {" "}
+              <Link to="/plugins/installed" viewTransition>Open Plugins</Link>
+            </>
+          )}
+        </Callout>
+      ))}
+    </div>
+  );
+}
+
 /** The frame of every signed-in page: sidebar, top bar, live updates. */
 export function Shell() {
   const sync = useLiveEvents(true);
@@ -291,6 +322,7 @@ export function Shell() {
       <div className="main">
         <Topbar onMenu={() => setMenuOpen(true)} />
         <Reconnecting sync={sync} />
+        <PluginNotices />
         <Outlet />
       </div>
     </div>

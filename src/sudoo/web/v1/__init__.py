@@ -14,6 +14,7 @@ role (roles.py), and the same permission checks apply.
     backups.py     backups
     github.py      deploy keys and repository checks
     docs.py        the documentation, for the web app's Help pages
+    plugins.py     installed plugins and the marketplace (catalogue, purchases, linking)
     events.py      the live event stream (Server-Sent Events), served on the asyncio loop
 Answers follow the conventions in responses.py.
 """
@@ -26,7 +27,7 @@ from sudoo.config import live
 from sudoo.core import events as bus
 from sudoo.core import jobs
 
-from . import account, backups, docs, github, instances, server, session, settings, tokens, users
+from . import account, backups, docs, github, instances, plugins, server, session, settings, tokens, users
 from . import events as stream
 from .resources import instance_resource, job_resource
 from .responses import PREFIX, add_request_id, problem
@@ -37,7 +38,7 @@ __all__ = ["PREFIX", "add_request_id", "problem", "register", "stream"]
 def register(app: Flask) -> None:
     """Add the API to the Flask app, and tell the live events how to show instances and jobs."""
     api = Blueprint("api_v1", __name__, url_prefix=PREFIX)
-    for module in (session, account, instances, settings, server, users, tokens, backups, github, docs):
+    for module in (session, account, instances, settings, server, users, tokens, backups, github, docs, plugins):
         api.register_blueprint(module.blueprint)
     app.register_blueprint(api)
     bus.present("instance", instance_resource)

@@ -51,5 +51,27 @@ def test_every_setting_is_documented() -> None:
     assert not missing
 
 
+def test_every_setting_is_in_the_env_template() -> None:
+    """.env.example names every setting (as NAME=value, or commented out for the rarely changed ones)."""
+    import re
+
+    fixed = {"pause_check_interval_seconds", "expiry_check_interval_seconds", "history_samples"}
+    template = (Path(__file__).resolve().parent.parent / ".env.example").read_text()
+    missing = [
+        name
+        for name in Settings.model_fields
+        if name not in fixed and not re.search(rf"^(# )?{name.upper()}=", template, re.MULTILINE)
+    ]
+    assert not missing
+
+
+def test_hub_url_must_be_https() -> None:
+    assert Settings(hub_url="https://hub.example.com/").hub_url == "https://hub.example.com"
+    assert Settings(hub_url="http://127.0.0.1:8000").hub_url == "http://127.0.0.1:8000"
+    for wrong in ("http://hub.example.com", "ftp://hub.example.com", "https://hub.example.com/?x=1"):
+        with pytest.raises(ValidationError):
+            Settings(hub_url=wrong)
+
+
 def test_contact_sentence_without_a_name() -> None:
     assert Settings().contact_sentence() == "Please contact the administrator."

@@ -4,7 +4,15 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./client";
 import type {
+  Billing,
+  Receipt,
   Account,
+  CatalogPlugin,
+  CatalogPluginDetail,
+  InstalledPlugin,
+  MarketplaceStatus,
+  PluginNotice,
+  Purchase,
   AuditEntry,
   Backup,
   Credentials,
@@ -36,6 +44,11 @@ export const keys = {
   metrics: ["metrics"] as const,
   history: ["metrics-history"] as const,
   settings: ["settings"] as const,
+  plugins: ["plugins"] as const,
+  pluginNotices: ["plugins", "notices"] as const,
+  marketplace: ["marketplace"] as const,
+  catalog: (query: string) => ["marketplace", "catalog", query] as const,
+  purchases: ["marketplace", "purchases"] as const,
 };
 
 export const useSession = () =>
@@ -137,6 +150,42 @@ export const usePlan = (repo: string, branch: string, name: string) =>
       ),
     placeholderData: keepPreviousData,
   });
+
+export const usePlugins = () =>
+  useQuery({ queryKey: keys.plugins, queryFn: () => api.get<InstalledPlugin[]>("/plugins") });
+export const usePluginNotices = (enabled: boolean) =>
+  useQuery({ queryKey: keys.pluginNotices, queryFn: () => api.get<PluginNotice[]>("/plugins/notices"), enabled, staleTime: 300_000 });
+export const useMarketplace = () =>
+  useQuery({ queryKey: keys.marketplace, queryFn: () => api.get<MarketplaceStatus>("/marketplace") });
+export const useCatalog = (query: string, enabled: boolean) =>
+  useQuery({
+    queryKey: keys.catalog(query),
+    queryFn: () => api.get<CatalogPlugin[]>(`/marketplace/catalog?${query}`),
+    enabled,
+    retry: false,
+    placeholderData: keepPreviousData,
+  });
+export const useCategories = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["marketplace", "categories"],
+    queryFn: () => api.get<{ type: string; count: number }[]>("/marketplace/categories"),
+    enabled,
+    retry: false,
+    staleTime: 600_000,
+  });
+export const useCatalogPlugin = (id: string | null) =>
+  useQuery({
+    queryKey: ["marketplace", "plugin", id],
+    queryFn: () => api.get<CatalogPluginDetail>(`/marketplace/catalog/${id}`),
+    enabled: !!id,
+    retry: false,
+  });
+export const useBilling = (enabled: boolean) =>
+  useQuery({ queryKey: ["marketplace", "billing"], queryFn: () => api.get<Billing>("/marketplace/billing"), enabled, retry: false });
+export const useReceipts = (enabled: boolean) =>
+  useQuery({ queryKey: ["marketplace", "receipts"], queryFn: () => api.get<Receipt[]>("/marketplace/receipts"), enabled, retry: false });
+export const usePurchases = (enabled: boolean) =>
+  useQuery({ queryKey: keys.purchases, queryFn: () => api.get<Purchase[]>("/marketplace/purchases"), enabled, retry: false });
 
 /** A mutation that refreshes the given queries afterwards. */
 export function useCall<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>, refresh: readonly (readonly unknown[])[] = []) {

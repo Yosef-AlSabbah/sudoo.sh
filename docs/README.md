@@ -42,6 +42,7 @@ Everything about Sudoo.sh, in one place. The same pages are on GitHub and inside
 | Create or restart instances from a CI pipeline or a script | [Panel API](PANEL_API.md) |
 | Update instances the moment code is pushed | [Plugins: update triggers](PLUGINS.md#5-update-triggers-what-starts-a-code-update) |
 | Use open ports instead of Cloudflare, or keep Enterprise in git | [Plugins](PLUGINS.md) |
+| Install or buy a plugin from the marketplace, or link the panel to an account | [Marketplace](MARKETPLACE.md) |
 | Look up a setting | [Configuration](CONFIGURATION.md) |
 | Send sign-in codes from Gmail | [Administrator guide: E-mail](ADMIN_GUIDE.md#6-e-mail) |
 | Change the look (colours, fonts, motion) | [Design](DESIGN.md#9-restyling-sudoosh) |
@@ -78,3 +79,4 @@ starts with an everyday comparison, then shows what it looks like on our server.
 | [Security](SECURITY.md) | What is protected, how, and what is not |
 | [Configuration](CONFIGURATION.md) | Every setting, with its type and default |
 | [Plugins](PLUGINS.md) | Choosing how instances are reached and where Enterprise comes from; writing your own |
+| [Marketplace](MARKETPLACE.md) | Installing and buying plugins, licences, the hub connection, what is protected |

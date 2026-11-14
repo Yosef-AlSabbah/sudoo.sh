@@ -4,7 +4,7 @@ Every check in the panel asks for a permission, never for a role (security.requi
 only a named set of permissions:
 
     super_admin   Super admin     everything, including the panel's settings and the other super admins
-    admin         Administrator   everything except the panel's settings
+    admin         Administrator   everything except the panel's settings (sees plugins, cannot install them)
     maintainer    Maintainer      creates instances and does everything on them except deleting (restoring backups
                                   too); GitHub access
     developer     Developer       follows instances: gets new code, restarts, starts, adds submodules
@@ -33,7 +33,8 @@ PERMISSIONS: dict[str, str] = {
     "accounts.manage": "Create, change and delete accounts",
     "tokens.manage": "Create and revoke API tokens",
     "audit.view": "Read the audit log",
-    "settings.manage": "Change the panel's settings and restart it",
+    "plugins.view": "See installed plugins, the marketplace and purchases",
+    "settings.manage": "Change the panel's settings, install and buy plugins, and restart it",
 }
 
 

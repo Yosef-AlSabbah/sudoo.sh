@@ -7,9 +7,10 @@ A client opens one long-lived request and receives every change as it happens:
     data: {"key": "a12fff66a05d", "data": {<the job, as GET /api/v1/jobs/<id> shows it>}}
 
 Topics: "instance" (an instance changed; data is the instance), "instance.deleted", "job" (a job started, moved to
-another step or ended), "job.output" (new log text of a job), "metrics" (resource use, every METRICS_INTERVAL_SECONDS) and
-"settings". `?topics=job,instance` limits the stream to some topics. A comment line is sent every 20 seconds so
-proxies keep the connection open.
+another step or ended), "job.output" (new log text of a job), "metrics" (resource use, every METRICS_INTERVAL_SECONDS),
+"settings", "plugins" (an installed plugin changed) and "marketplace" (the connection to the hub changed); the last
+two carry no details, only that something changed. `?topics=job,instance` limits the stream to some topics. A
+comment line is sent every 20 seconds so proxies keep the connection open.
 
 After a lost connection, the browser's EventSource reconnects by itself and sends Last-Event-ID; the stream then
 starts with what was missed (the latest state of each instance and job). When too much was missed, the first
@@ -38,7 +39,9 @@ from ..security import api_caller, client_ip_of, user_of_session
 
 PATH = "/api/v1/events"
 FLASK_APP = web.AppKey("flask", Flask)
-TOPICS = frozenset({"instance", "instance.deleted", "job", "job.output", "metrics", "settings"})
+TOPICS = frozenset(
+    {"instance", "instance.deleted", "job", "job.output", "metrics", "settings", "plugins", "marketplace"}
+)
 HEARTBEAT_SECONDS = 20
 MAX_CLIENTS = 500
 _RECHECK_SECONDS = 60  # how often a long stream checks that its session is still valid

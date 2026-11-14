@@ -80,3 +80,18 @@ export const STATUS_LABEL: Record<string, string> = {
   success: "Done",
   failed: "Failed",
 };
+
+/** An amount in cents as money: 500, "usd" -> "$5.00". */
+export function money(cents: number | null | undefined, currency: string | null | undefined = "usd"): string {
+  if (cents == null) return "—";
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: (currency || "usd").toUpperCase() }).format(cents / 100);
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${(currency || "").toUpperCase()}`;
+  }
+}
+
+export function day(value: string | number | null | undefined): string {
+  const parsed = toDate(value);
+  return parsed ? parsed.toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
+}

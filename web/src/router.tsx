@@ -38,6 +38,7 @@ export const router = createBrowserRouter([
           { path: "/i/:name/:tab?", lazy: page(() => import("./pages/Instance"), (m) => m.InstancePage) },
           { path: "/new", lazy: page(() => import("./pages/NewInstance"), (m) => m.NewInstancePage, "instances.create") },
           { path: "/settings", lazy: page(() => import("./pages/Settings"), (m) => m.SettingsPage, "settings.manage") },
+          { path: "/plugins/:tab?", lazy: page(() => import("./pages/Plugins"), (m) => m.PluginsPage, "plugins.view") },
           { path: "/accounts", lazy: page(() => import("./pages/Accounts"), (m) => m.AccountsPage, "accounts.manage") },
           { path: "/tokens", lazy: page(() => import("./pages/Tokens"), (m) => m.TokensPage, "tokens.manage") },
           { path: "/backups", lazy: page(() => import("./pages/Backups"), (m) => m.BackupsPage, "backups.manage") },

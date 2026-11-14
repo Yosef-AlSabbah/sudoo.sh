@@ -15,6 +15,7 @@
 6. [Writing a plugin](#6-writing-a-plugin)
 7. [Rules for plugins](#7-rules-for-plugins)
 8. [More plugin types](#8-more-plugin-types)
+9. [Plugins from the marketplace](#9-plugins-from-the-marketplace)
 
 ---
 
@@ -63,6 +64,9 @@ docker exec sudoo-panel sudoo.sh config
 ```
 
 A setting that names a plugin that is not installed stops the panel at start-up with the list of installed ones.
+
+Plugins can also come from the **Sudoo.sh marketplace**, installed from the panel's **Plugins** page without touching
+the server: see [Plugins from the marketplace](#9-plugins-from-the-marketplace).
 
 **Changing a plugin.** Plugins are created when the panel starts, so a new choice takes effect after a restart of the
 panel:
@@ -335,3 +339,35 @@ interface.
 `limits/base.py`: `hit(key, limit, window_seconds)` returns a `Decision`. The built-in `memory` counts in the
 panel's process, which is exact for one panel. Several panels behind one address would share counts through a
 Redis plugin: the same method, with Redis's `INCR` and `EXPIRE`.
+
+---
+
+## 9. Plugins from the marketplace
+
+Besides the built-in plugins and the ones you add to the panel's own package, a super admin can install plugins
+from the Sudoo.sh marketplace on the **Plugins** page. The page, buying, licences and troubleshooting are described in
+[Marketplace](MARKETPLACE.md); this section says how such a plugin fits the mechanism above.
+
+| Step | What the panel does (`src/sudoo/plugin_manager.py`) |
+| :--- | :--- |
+| Download | A signed request to the hub; the package goes to a private folder |
+| Verify | SHA-256 as stated by the hub, the hub's Ed25519 signature over id, version and SHA-256, with a pinned hub key |
+| Check | `manifest.json` names the same plugin and version; `min_sudoo_version`, `max_sudoo_version`, `sdk_version` (the panel offers SDK 0.1.0) and `requires` fit; no Python dependencies, compiled files, links or unsafe paths |
+| Unpack | `/opt/odoo/manager/plugins/<id>/<version>/package/` (root only); the package file is deleted |
+| Register | The manifest's `entry_points` are written as a small `dist-info` folder next to the package, and both folders are added to the **end** of Python's path when the backend starts. `plugins.load(group, name, settings)` then finds the plugin exactly like a built-in one: an installed mailer named `sendgrid` is chosen with `MAILER=sendgrid` |
+| Restart | The backend restarts by itself once no job runs; instances and links keep running |
+| Keep honest | Every file is hashed at install; the hashes are checked at each start and every 10 minutes. A changed plugin is not loaded |
+
+Rules for a marketplace plugin, on top of [Rules for plugins](#7-rules-for-plugins):
+
+* **Standard library only, for now.** Packages that declare dependencies (`[project] dependencies` in
+  `pyproject.toml`, or a `requirements*.txt` with entries) are refused, because this version of the panel has no
+  dependency installer.
+* **Python source only.** No `.so`, `.pyd`, `.pyc` or other compiled files.
+* **Your own names.** Entry-point names must not be taken by another plugin of the same group, and top-level module
+  names must not clash with the panel's (`sudoo`) or its libraries (`flask`, `cryptography`...). A storage plugin
+  (`sudoo.storage`) cannot be installed from the marketplace.
+* **Declare what you need.** The manifest's `permissions` are shown before installing and checked by the
+  marketplace's reviewers.
+
+The plugin SDK (`sudoo-plugin-sdk`) builds, checks and packs plugins in this format.

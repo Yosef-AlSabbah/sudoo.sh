@@ -42,7 +42,10 @@ def job_resource(job: jobs.Job, include_log: bool = False) -> dict[str, Any]:
         "steps": [{"title": step["title"], "status": step["status"]} for step in job.steps],
         "notes": job.notes,
         "error": job.hint if job.status == "failed" else None,
-        "links": {"self": f"{PREFIX}/jobs/{job.id}", "instance": f"{PREFIX}/instances/{job.instance}"},
+        "links": {
+            "self": f"{PREFIX}/jobs/{job.id}",
+            "instance": None if jobs.is_panel_job(job.instance) else f"{PREFIX}/instances/{job.instance}",
+        },
     }
     if include_log:
         resource["log"] = "".join(job.log)

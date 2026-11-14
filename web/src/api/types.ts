@@ -15,6 +15,7 @@ export type Permission =
   | "accounts.manage"
   | "tokens.manage"
   | "audit.view"
+  | "plugins.view"
   | "settings.manage";
 
 export interface Profile {
@@ -288,4 +289,157 @@ export interface AuditEntry {
 export interface RepoAccess {
   repositories: { url: string; role: "main" | "submodule"; ok: boolean; problem: string | null }[];
   all_ok: boolean;
+}
+
+// ---------------------------------------------------------------- plugins and the marketplace (docs/MARKETPLACE.md)
+
+export interface Publisher {
+  name: string;
+  slug: string;
+  verified: boolean;
+  official: boolean;
+}
+
+export interface PricePlan {
+  id: string;
+  kind: "monthly" | "yearly" | "fixed_term";
+  price_cents: number;
+  currency: string;
+  period_days: number | null;
+}
+
+export interface PluginVersionInfo {
+  version: string;
+  min_sudoo_version?: string;
+  max_sudoo_version?: string | null;
+  published_at?: string | null;
+}
+
+export type CatalogAction = "install" | "update" | "installed" | "buy" | "renew" | "incompatible";
+
+/** One plugin of GET /marketplace/catalog: the hub's catalogue for this panel. */
+export interface CatalogPlugin {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  tier: "free" | "paid";
+  tags: string[];
+  icon_url?: string | null;
+  avg_rating: number;
+  rating_count?: number;
+  install_count: number;
+  publisher: Publisher | null;
+  requires: { id: string; version: string | null }[];
+  plans: PricePlan[];
+  latest_version: PluginVersionInfo | null;
+  compatible_version: PluginVersionInfo | null;
+  installed_version: string | null;
+  license: { state: string; expires_at: string | null; grace_until: string | null } | null;
+  action: CatalogAction;
+}
+
+/** GET /marketplace/catalog/<id>: the plugin's public page. */
+export interface CatalogPluginDetail {
+  id: string;
+  homepage?: string | null;
+  permissions: string[];
+}
+
+export interface Billing {
+  payments_enabled: boolean;
+  linked: boolean;
+  account_name: string | null;
+  purchases_allowed: boolean;
+  monthly_limit_cents: number | null;
+  spent_this_month_cents: number | null;
+  remaining_cents: number | null;
+  currency: string;
+  card: { brand: string; last4: string; exp_month: number; exp_year: number; expired: boolean } | null;
+  manage_url: string | null;
+}
+
+export type LicencePhase = "active" | "expiring" | "grace" | "ended" | "no_lease" | "unlicensed";
+
+export interface InstalledPlugin {
+  id: string;
+  name: string;
+  version: string;
+  type: string | null;
+  tier: "free" | "paid";
+  description: string;
+  publisher: Publisher | null;
+  permissions: string[];
+  enabled: boolean;
+  status: "active" | "disabled" | "modified" | "blocked" | "switched_off" | "unlicensed";
+  loaded: boolean;
+  restart_pending: boolean;
+  licence: {
+    state: string | null;
+    standing: string | null;
+    expires_at: string | null;
+    grace_until: string | null;
+    phase: LicencePhase | null;
+  } | null;
+  latest_version: string | null;
+  update_available: boolean;
+  installed_at: string | null;
+  installed_by: string | null;
+}
+
+export interface PluginNotice {
+  plugin: string | null;
+  kind: string;
+  level: "info" | "warning" | "danger";
+  text: string;
+  date: string | null;
+}
+
+export interface MarketplaceStatus {
+  enabled: boolean;
+  hub_url: string;
+  installation_id: string | null;
+  registered: boolean;
+  reachable: boolean | null;
+  error: string | null;
+  error_code: string | null;
+  hub_status: string | null;
+  linked: { account_name: string | null; linked_at: string | null } | null;
+  last_heartbeat_at: string | null;
+  next_heartbeat_at: string | null;
+  lease_expires_at: string | null;
+  lease_valid: boolean;
+  lease_ending_soon: boolean;
+}
+
+export interface Purchase {
+  id: string;
+  plugin_id: string | null;
+  plugin_name: string | null;
+  plan_id: string | null;
+  plan_kind: string | null;
+  amount_cents: number | null;
+  currency: string | null;
+  status: "succeeded" | "processing" | "checkout_required" | "failed" | "expired" | null;
+  method: "saved_card" | "checkout" | null;
+  reason: string | null;
+  checkout_url: string | null;
+  receipt_number: string | null;
+  requested_by: { name: string | null; email: string | null };
+  created_at: string | null;
+  completed_at: string | null;
+}
+
+export interface Receipt {
+  id: string;
+  kind: "receipt" | "credit_note";
+  number: string;
+  issued_at: string | null;
+  plugin_id: string | null;
+  plugin_name: string | null;
+  plan_kind: string | null;
+  payment_kind: "purchase" | "renewal" | null;
+  total_cents: number;
+  currency: string;
+  requested_by_name: string | null;
 }
